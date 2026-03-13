@@ -339,7 +339,7 @@ def maybe_send_tomorrow_summary(intervals, state):
         end = window[-1]["end_local"]
 
         lines.append("")
-        lines.append("🔋 Best 3h charging window")
+        lines.append("🔋 Best charging window")
         lines.append(
             f"{format_interval(start, end)} — avg {avg:.2f} EUR/MWh"
         )
@@ -399,4 +399,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     main()
