@@ -228,10 +228,6 @@ def find_negative_windows(intervals):
         windows.append(current)
 
     return windows
-
-# =========================
-# BEST WINDOW
-# =========================
 # =========================
 # BEST WINDOW
 # =========================
@@ -249,7 +245,7 @@ def find_best_4h_window(intervals):
         window = intervals[i:i+4]
         a, b, c, d = window
 
-        # must be consecutive
+        # must be 4 consecutive slots
         if not (
             a["end_utc"] == b["start_utc"] and
             b["end_utc"] == c["start_utc"] and
@@ -257,21 +253,20 @@ def find_best_4h_window(intervals):
         ):
             continue
 
-        # enforce 08:00–22:00 local time window
-        if a["start_local"].hour < 8:
+        # force Netherlands local time for validation
+        start_nl = a["start_utc"].astimezone(NL_TZ)
+        end_nl = d["end_utc"].astimezone(NL_TZ)
+
+        # window must stay between 08:00 and 22:00 NL time
+        if start_nl.hour < 8:
             continue
 
-        if d["end_local"].hour > 22 or (
-            d["end_local"].hour == 22 and d["end_local"].minute > 0
+        if end_nl.hour > 22 or (
+            end_nl.hour == 22 and end_nl.minute > 0
         ):
             continue
 
-        avg = (
-            a["price"] +
-            b["price"] +
-            c["price"] +
-            d["price"]
-        ) / 4
+        avg = sum(x["price"] for x in window) / 4
 
         if avg < best_avg:
             best_avg = avg
@@ -420,6 +415,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
