@@ -298,6 +298,7 @@ def load_state():
 
 def save_state(state):
     STATE_FILE.write_text(json.dumps(state, indent=2))
+    
 # =========================
 # TOMORROW SUMMARY
 # =========================
@@ -355,11 +356,11 @@ def maybe_send_tomorrow_summary(intervals, state):
     if best_window:
         window, avg = best_window
 
-        start = window[0]["start_utc"].astimezone(NL_TZ)
-        end = window[-1]["end_utc"].astimezone(NL_TZ)
+        start = window[0]["start_local"]
+        end = window[-1]["end_local"]
 
         lines.append("")
-        lines.append("🔋 Best charging window (NL time)")
+        lines.append("🔋 Best charging window")
         lines.append(
             f"{format_interval(start, end)} — avg {avg:.2f} EUR/MWh"
         )
@@ -415,6 +416,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
