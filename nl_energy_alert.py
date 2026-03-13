@@ -232,28 +232,24 @@ def find_negative_windows(intervals):
 # =========================
 # BEST WINDOW
 # =========================
+# =========================
+# BEST WINDOW
+# =========================
 
 def find_best_4h_window(intervals):
-    # Only consider slots that START between 08:00 and 21:00,
-    # so a 4-hour block can still end by 22:00.
-    eligible = [
-        x for x in intervals
-        if 8 <= x["start_local"].hour < 22
-    ]
 
-    if len(eligible) < 4:
+    if len(intervals) < 4:
         return None
 
     best_window = None
     best_avg = float("inf")
 
-    for i in range(len(eligible) - 3):
-        a = eligible[i]
-        b = eligible[i + 1]
-        c = eligible[i + 2]
-        d = eligible[i + 3]
+    for i in range(len(intervals) - 3):
 
-        # Must be 4 consecutive time slots
+        window = intervals[i:i+4]
+        a, b, c, d = window
+
+        # must be consecutive
         if not (
             a["end_utc"] == b["start_utc"] and
             b["end_utc"] == c["start_utc"] and
@@ -261,17 +257,25 @@ def find_best_4h_window(intervals):
         ):
             continue
 
-        # Make sure the whole 4-hour window stays within 08:00–22:00 local time
+        # enforce 08:00–22:00 local time window
         if a["start_local"].hour < 8:
             continue
-        if d["end_local"].hour > 22 or (d["end_local"].hour == 22 and d["end_local"].minute > 0):
+
+        if d["end_local"].hour > 22 or (
+            d["end_local"].hour == 22 and d["end_local"].minute > 0
+        ):
             continue
 
-        avg = (a["price"] + b["price"] + c["price"] + d["price"]) / 4
+        avg = (
+            a["price"] +
+            b["price"] +
+            c["price"] +
+            d["price"]
+        ) / 4
 
         if avg < best_avg:
             best_avg = avg
-            best_window = (a, b, c, d)
+            best_window = window
 
     if best_window is None:
         return None
@@ -416,5 +420,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
