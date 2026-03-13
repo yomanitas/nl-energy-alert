@@ -1,4 +1,4 @@
-name: NL Energy Price Alert
+name: Energy Alert
 
 on:
   schedule:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Setup Python
@@ -18,8 +18,12 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install requests
+      - name: Install dependencies
         run: pip install requests
 
       - name: Run script
+        env:
+          ENTSOE_TOKEN: ${{ secrets.ENTSOE_TOKEN }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
         run: python nl_energy_alert.py
