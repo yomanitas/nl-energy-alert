@@ -1,10 +1,11 @@
+import os
+import json
+import time
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
-import json
-import time
 
 # =========================
 # SETTINGS
@@ -24,9 +25,16 @@ NEGATIVE_PRICE_THRESHOLD = 0
 # "tomorrow_summary"
 TEST_MODE = None
 
-ENTSOE_TOKEN = "4addb861-0010-4f1c-af57-b9101f1a894b"
-BOT_TOKEN = "8203663385:AAG8t6AH9BzUwWRyl4m3sEfdeVkzwgmlUtA"
-CHAT_ID = "-5040694729"
+ENTSOE_TOKEN = os.getenv("ENTSOE_TOKEN")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
+
+if not ENTSOE_TOKEN:
+    raise ValueError("ENTSOE_TOKEN is not set")
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN is not set")
+if not CHAT_ID:
+    raise ValueError("CHAT_ID is not set")
 
 STATE_FILE = Path("alert_state.json")
 
@@ -222,33 +230,34 @@ def find_negative_windows(intervals):
     return windows
 
 # =========================
-# BEST 3H WINDOW
+# BEST 4H WINDOW
 # =========================
 
-def find_best_3h_window(intervals):
-    if len(intervals) < 3:
+def find_best_4h_window(intervals):
+    if len(intervals) < 4:
         return None
 
     best_window = None
     best_avg = float("inf")
 
-    for i in range(len(intervals) - 2):
-
+    for i in range(len(intervals) - 3):
         a = intervals[i]
         b = intervals[i + 1]
         c = intervals[i + 2]
+        d = intervals[i + 3]
 
         if not (
             a["end_utc"] == b["start_utc"] and
-            b["end_utc"] == c["start_utc"]
+            b["end_utc"] == c["start_utc"] and
+            c["end_utc"] == d["start_utc"]
         ):
             continue
 
-        avg = (a["price"] + b["price"] + c["price"]) / 3
+        avg = (a["price"] + b["price"] + c["price"] + d["price"]) / 4
 
         if avg < best_avg:
             best_avg = avg
-            best_window = (a, b, c)
+            best_window = (a, b, c, d)
 
     if best_window is None:
         return None
@@ -262,7 +271,7 @@ def find_best_3h_window(intervals):
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {"chat_id": CHAT_ID, "text": message}
-    response = requests.post(url, data=payload)
+    response = requests.post(url, data=payload, timeout=(CONNECT_TIMEOUT, READ_TIMEOUT))
     response.raise_for_status()
 
 # =========================
@@ -282,7 +291,6 @@ def save_state(state):
 # =========================
 
 def maybe_send_tomorrow_summary(intervals, state):
-
     if not intervals:
         print("No tomorrow intervals found yet.")
         return
@@ -296,7 +304,7 @@ def maybe_send_tomorrow_summary(intervals, state):
     low_hours = find_low_price_hours(intervals)
     high_hours = find_high_price_hours(intervals)
     negative_windows = find_negative_windows(intervals)
-    best_window = find_best_3h_window(intervals)
+    best_window = find_best_4h_window(intervals)
 
     lines = [f"📅 NL Prices tomorrow ({tomorrow_key})", ""]
 
@@ -321,7 +329,6 @@ def maybe_send_tomorrow_summary(intervals, state):
     lines.append("")
 
     lines.append(f"🟢 Negative price windows (<= {NEGATIVE_PRICE_THRESHOLD})")
-
     if negative_windows:
         for window in negative_windows:
             start = window[0]["start_local"]
@@ -339,7 +346,7 @@ def maybe_send_tomorrow_summary(intervals, state):
         end = window[-1]["end_local"]
 
         lines.append("")
-        lines.append("🔋 Best charging window")
+        lines.append("🔋 Best 4-hour charging window")
         lines.append(
             f"{format_interval(start, end)} — avg {avg:.2f} EUR/MWh"
         )
@@ -356,7 +363,6 @@ def maybe_send_tomorrow_summary(intervals, state):
 # =========================
 
 def main():
-
     xml_text = fetch_xml()
     intervals = parse_all_prices(xml_text)
 
@@ -374,7 +380,6 @@ def main():
     in_range = LOW_PRICE <= price <= HIGH_PRICE
 
     if in_range and not was_in_range:
-
         message = (
             "⚡ NL Energy Price Alert\n\n"
             f"Price: {price:.2f} EUR/MWh\n"
@@ -383,21 +388,17 @@ def main():
 
         send_telegram(message)
         print("Telegram alert sent.")
-
     else:
         print("No current-price alert needed.")
 
     tomorrow_intervals = get_tomorrow_intervals(intervals)
-
     maybe_send_tomorrow_summary(tomorrow_intervals, state)
 
     save_state({
         "in_range": in_range,
         "last_price": price,
-        "tomorrow_summary_sent_for": state.get("tomorrow_summary_sent_for")
+        "tomorrow_summary_sent_for": state.get("tomorrow_summary_sent_for"),
     })
 
-
 if __name__ == "__main__":
-
     main()
