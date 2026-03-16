@@ -23,7 +23,7 @@ NEGATIVE_PRICE_THRESHOLD = 0
 # "telegram"
 # "current_alert"
 # "tomorrow_summary"
-TEST_MODE = None
+TEST_MODE = "current_alert"
 
 ENTSOE_TOKEN = os.getenv("ENTSOE_TOKEN")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
