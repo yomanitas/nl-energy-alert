@@ -341,6 +341,14 @@ def save_state(state):
     STATE_FILE.write_text(json.dumps(state, indent=2))
 
 # =========================
+# MARKET PUBLICATION TIME
+# =========================
+
+def tomorrow_prices_available():
+    now = datetime.now(NL_TZ)
+    return now.hour >= 13
+
+# =========================
 # TOMORROW SUMMARY
 # =========================
 
