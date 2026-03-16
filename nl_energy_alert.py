@@ -372,19 +372,19 @@ def maybe_send_tomorrow_summary(intervals, state, current_price):
     best_window = find_best_1h_window(intervals)
     worst_window = find_worst_1h_window(intervals)
 
-    [lines = [
-    f"⚡️ *Current price now* ⚡️",
-    f"{current_price:.2f} EUR/MWh",
-    "",
-    f"📅 *NL Prices tomorrow ({tomorrow_key})*",
-    "",
-    "",
-]
+    lines = [
+        f"⚡️ *Current price now* ⚡️",
+        f"{current_price:.2f} EUR/MWh",
+        "",
+        f"📅 *NL Prices tomorrow ({tomorrow_key})*",
+        "",
+        "",
+    ]
 
     lines.append("")
     lines.append("")
     lines.append(f"🔻 Low price hours (< {LOW_PRICE_THRESHOLD})")
-    
+
     if low_hours:
         for h in low_hours:
             lines.append(
@@ -418,24 +418,27 @@ def maybe_send_tomorrow_summary(intervals, state, current_price):
 
     lines.append("")
     lines.append("")
-    
+    lines.append("🔌 *CHARGING WINDOWS*")
+    lines.append("")
+
     if best_window:
         window, avg = best_window
         start = window[0]["start_local"]
         end = window[-1]["end_local"]
 
+        lines.append("🟢 Best")
+        lines.append(f"{format_interval(start, end)}")
+        lines.append(f"avg {avg:.2f} EUR/MWh")
         lines.append("")
-        lines.append("🔋 Best charging window tomorrow")
-        lines.append(f"{format_interval(start, end)} — avg {avg:.2f} EUR/MWh")
 
     if worst_window:
         window, avg = worst_window
         start = window[0]["start_local"]
         end = window[-1]["end_local"]
 
-        lines.append("")
-        lines.append("🔴 Worst charging window tomorrow")
-        lines.append(f"{format_interval(start, end)} — avg {avg:.2f} EUR/MWh")
+        lines.append("🔴 Worst")
+        lines.append(f"{format_interval(start, end)}")
+        lines.append(f"avg {avg:.2f} EUR/MWh")
 
     message = "\n".join(lines)
 
@@ -443,7 +446,7 @@ def maybe_send_tomorrow_summary(intervals, state, current_price):
     print("Tomorrow summary sent.")
 
     state["tomorrow_summary_sent_for"] = tomorrow_key
-
+    
 # =========================
 # MAIN
 # =========================
