@@ -232,6 +232,7 @@ def find_negative_windows(intervals):
         windows.append(current)
 
     return windows
+    
 # =========================
 # BEST WINDOWS
 # =========================
