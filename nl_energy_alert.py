@@ -23,7 +23,7 @@ NEGATIVE_PRICE_THRESHOLD = 0
 # "telegram"
 # "current_alert"
 # "tomorrow_summary"
-TEST_MODE = "telegram"
+TEST_MODE = None
 
 ENTSOE_TOKEN = os.getenv("ENTSOE_TOKEN")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -479,8 +479,11 @@ def main():
     else:
         print("No current-price alert needed.")
 
+    if tomorrow_prices_available():
     tomorrow_intervals = get_tomorrow_intervals(intervals)
     maybe_send_tomorrow_summary(tomorrow_intervals, state, price)
+else:
+    print("Tomorrow prices not expected yet (before 13:00).")
 
     save_state({
         "in_range": in_range,
