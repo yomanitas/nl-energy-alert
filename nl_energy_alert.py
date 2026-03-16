@@ -480,10 +480,10 @@ def main():
         print("No current-price alert needed.")
 
     if tomorrow_prices_available():
-    tomorrow_intervals = get_tomorrow_intervals(intervals)
-    maybe_send_tomorrow_summary(tomorrow_intervals, state, price)
-else:
-    print("Tomorrow prices not expected yet (before 13:00).")
+        tomorrow_intervals = get_tomorrow_intervals(intervals)
+        maybe_send_tomorrow_summary(tomorrow_intervals, state, price)
+    else:
+        print("Tomorrow prices not expected yet (before 13:00).")
 
     save_state({
         "in_range": in_range,
