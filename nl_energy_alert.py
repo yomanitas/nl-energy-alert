@@ -275,7 +275,6 @@ def find_best_1h_window(intervals):
 
     return best_window, best_avg
 
-
 # =========================
 # WORST WINDOWS
 # =========================
@@ -317,7 +316,6 @@ def find_worst_1h_window(intervals):
         return None
 
     return worst_window, worst_avg
-    
 
 # =========================
 # TELEGRAM
@@ -367,8 +365,8 @@ def maybe_send_tomorrow_summary(intervals, state, current_price):
     low_hours = find_low_price_hours(intervals)
     high_hours = find_high_price_hours(intervals)
     negative_windows = find_negative_windows(intervals)
-    best_window = find_best_4h_window(intervals)
-    worst_window = find_worst_4h_window(intervals)
+    best_window = find_best_1h_window(intervals)
+    worst_window = find_worst_1h_window(intervals)
 
     lines = [
         f"📅 NL Prices tomorrow ({tomorrow_key})",
