@@ -456,8 +456,8 @@ def main():
 
     if in_range and not was_in_range:
         today_intervals = get_today_intervals(intervals)
-        best_today = find_best_4h_window(today_intervals)
-        worst_today = find_worst_4h_window(today_intervals)
+        best_today = find_best_1h_window(today_intervals)
+        worst_today = find_worst_1h_window(today_intervals)
 
         lines = [
             "⚡ NL Energy Price Alert",
