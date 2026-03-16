@@ -369,12 +369,17 @@ def maybe_send_tomorrow_summary(intervals, state, current_price):
     worst_window = find_worst_1h_window(intervals)
 
     lines = [
-        f"📅 NL Prices tomorrow ({tomorrow_key})",
-        f"⚡ Current price now: {current_price:.2f} EUR/MWh",
-        ""
+       f"⚡️ Current price now ⚡️  {current_price:.2f} EUR/MWh",
+    "",
+    f"📅 NL Prices tomorrow ({tomorrow_key})",
+    "",
+    ""
     ]
 
+    lines.append("")
+    lines.append("")
     lines.append(f"🔻 Low price hours (< {LOW_PRICE_THRESHOLD})")
+    
     if low_hours:
         for h in low_hours:
             lines.append(
@@ -406,6 +411,9 @@ def maybe_send_tomorrow_summary(intervals, state, current_price):
     else:
         lines.append("None")
 
+    lines.append("")
+    lines.append("")
+    
     if best_window:
         window, avg = best_window
         start = window[0]["start_local"]
