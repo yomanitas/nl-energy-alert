@@ -323,7 +323,11 @@ def find_worst_1h_window(intervals):
 
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": message}
+    payload = {
+    "chat_id": CHAT_ID,
+    "text": message,
+    "parse_mode": "Markdown"
+}
     response = requests.post(url, data=payload, timeout=(CONNECT_TIMEOUT, READ_TIMEOUT))
     response.raise_for_status()
 
@@ -368,13 +372,14 @@ def maybe_send_tomorrow_summary(intervals, state, current_price):
     best_window = find_best_1h_window(intervals)
     worst_window = find_worst_1h_window(intervals)
 
-    lines = [
-       f"⚡️ Current price now ⚡️  {current_price:.2f} EUR/MWh",
+    [lines = [
+    f"⚡️ *Current price now* ⚡️",
+    f"{current_price:.2f} EUR/MWh",
     "",
-    f"📅 NL Prices tomorrow ({tomorrow_key})",
+    f"📅 *NL Prices tomorrow ({tomorrow_key})*",
     "",
-    ""
-    ]
+    "",
+]
 
     lines.append("")
     lines.append("")
