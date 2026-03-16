@@ -187,47 +187,83 @@ def get_current_price(intervals):
 
     return None
 
+
 # =========================
-# TOMORROW DATA
+# TOMORROW SUMMARY
 # =========================
 
-def get_tomorrow_intervals(intervals):
-    tomorrow = (datetime.now(NL_TZ) + timedelta(days=1)).date()
-    return [x for x in intervals if x["start_local"].date() == tomorrow]
+def maybe_send_tomorrow_summary(intervals, state, current_price):
+    if not intervals:
+        print("No tomorrow intervals found yet.")
+        return
 
-def format_interval(start, end):
-    return f"{start.strftime('%H:%M')}–{end.strftime('%H:%M')}"
+    tomorrow_key = intervals[0]["start_local"].strftime("%Y-%m-%d")
 
-def find_low_price_hours(intervals):
-    return [x for x in intervals if x["price"] < LOW_PRICE_THRESHOLD]
+    if state.get("tomorrow_summary_sent_for") == tomorrow_key:
+        print("Tomorrow summary already sent.")
+        return
 
-def find_high_price_hours(intervals):
-    return [x for x in intervals if x["price"] > HIGH_PRICE_THRESHOLD]
+    low_hours = find_low_price_hours(intervals)
+    high_hours = find_high_price_hours(intervals)
+    negative_windows = find_negative_windows(intervals)
+    best_window = find_best_4h_window(intervals)
 
-def find_negative_windows(intervals):
-    windows = []
-    current = []
+    lines = [
+        f"📅 NL Prices tomorrow ({tomorrow_key})",
+        f"⚡ Current price now: {current_price:.2f} EUR/MWh",
+        ""
+    ]
 
-    for item in intervals:
-        if item["price"] <= NEGATIVE_PRICE_THRESHOLD:
-            if not current:
-                current = [item]
-            else:
-                prev = current[-1]
-                if item["start_utc"] == prev["end_utc"]:
-                    current.append(item)
-                else:
-                    windows.append(current)
-                    current = [item]
-        else:
-            if current:
-                windows.append(current)
-                current = []
+    lines.append(f"🔻 Low price hours (< {LOW_PRICE_THRESHOLD})")
+    if low_hours:
+        for h in low_hours:
+            lines.append(
+                f"{format_interval(h['start_local'], h['end_local'])} — {h['price']:.2f} EUR/MWh"
+            )
+    else:
+        lines.append("None")
+    lines.append("")
 
-    if current:
-        windows.append(current)
+    lines.append(f"🔺 High price hours (> {HIGH_PRICE_THRESHOLD})")
+    if high_hours:
+        for h in high_hours:
+            lines.append(
+                f"{format_interval(h['start_local'], h['end_local'])} — {h['price']:.2f} EUR/MWh"
+            )
+    else:
+        lines.append("None")
+    lines.append("")
 
-    return windows
+    lines.append(f"🟢 Negative price windows (<= {NEGATIVE_PRICE_THRESHOLD})")
+    if negative_windows:
+        for window in negative_windows:
+            start = window[0]["start_local"]
+            end = window[-1]["end_local"]
+            min_price = min(x["price"] for x in window)
+            lines.append(
+                f"{format_interval(start, end)} — from {min_price:.2f} EUR/MWh"
+            )
+    else:
+        lines.append("None")
+
+    if best_window:
+        window, avg = best_window
+
+        start = window[0]["start_local"]
+        end = window[-1]["end_local"]
+
+        lines.append("")
+        lines.append("🔋 Best charging window")
+        lines.append(
+            f"{format_interval(start, end)} — avg {avg:.2f} EUR/MWh"
+        )
+
+    message = "\n".join(lines)
+
+    send_telegram(message)
+    print("Tomorrow summary sent.")
+
+    state["tomorrow_summary_sent_for"] = tomorrow_key
 # =========================
 # BEST WINDOW
 # =========================
