@@ -188,8 +188,12 @@ def get_current_price(intervals):
     return None
 
 # =========================
-# TOMORROW DATA
+# DAY HELPERS
 # =========================
+
+def get_today_intervals(intervals):
+    today = datetime.now(NL_TZ).date()
+    return [x for x in intervals if x["start_local"].date() == today]
 
 def get_tomorrow_intervals(intervals):
     tomorrow = (datetime.now(NL_TZ) + timedelta(days=1)).date()
@@ -228,9 +232,8 @@ def find_negative_windows(intervals):
         windows.append(current)
 
     return windows
-
 # =========================
-# BEST WINDOW
+# BEST WINDOWS
 # =========================
 
 def find_best_4h_window(intervals):
@@ -270,6 +273,50 @@ def find_best_4h_window(intervals):
         return None
 
     return best_window, best_avg
+
+
+# =========================
+# WORST WINDOWS
+# =========================
+
+def find_worst_4h_window(intervals):
+    if len(intervals) < 4:
+        return None
+
+    worst_window = None
+    worst_avg = float("-inf")
+
+    for i in range(len(intervals) - 3):
+        window = intervals[i:i + 4]
+        a, b, c, d = window
+
+        if not (
+            a["end_utc"] == b["start_utc"] and
+            b["end_utc"] == c["start_utc"] and
+            c["end_utc"] == d["start_utc"]
+        ):
+            continue
+
+        start_nl = a["start_utc"].astimezone(NL_TZ)
+        end_nl = d["end_utc"].astimezone(NL_TZ)
+
+        if start_nl.hour < 8:
+            continue
+
+        if end_nl.hour > 22 or (end_nl.hour == 22 and end_nl.minute > 0):
+            continue
+
+        avg = sum(x["price"] for x in window) / 4
+
+        if avg > worst_avg:
+            worst_avg = avg
+            worst_window = window
+
+    if worst_window is None:
+        return None
+
+    return worst_window, worst_avg
+    
 
 # =========================
 # TELEGRAM
@@ -312,6 +359,7 @@ def maybe_send_tomorrow_summary(intervals, state, current_price):
     high_hours = find_high_price_hours(intervals)
     negative_windows = find_negative_windows(intervals)
     best_window = find_best_4h_window(intervals)
+    worst_window = find_worst_4h_window(intervals)
 
     lines = [
         f"📅 NL Prices tomorrow ({tomorrow_key})",
@@ -357,7 +405,16 @@ def maybe_send_tomorrow_summary(intervals, state, current_price):
         end = window[-1]["end_local"]
 
         lines.append("")
-        lines.append("🔋 Best charging window")
+        lines.append("🔋 Best charging window tomorrow")
+        lines.append(f"{format_interval(start, end)} — avg {avg:.2f} EUR/MWh")
+
+    if worst_window:
+        window, avg = worst_window
+        start = window[0]["start_local"]
+        end = window[-1]["end_local"]
+
+        lines.append("")
+        lines.append("🔴 Worst charging window tomorrow")
         lines.append(f"{format_interval(start, end)} — avg {avg:.2f} EUR/MWh")
 
     message = "\n".join(lines)
@@ -389,11 +446,34 @@ def main():
     in_range = LOW_PRICE <= price <= HIGH_PRICE
 
     if in_range and not was_in_range:
-        message = (
-            "⚡ NL Energy Price Alert\n\n"
-            f"Price: {price:.2f} EUR/MWh\n"
-            f"Target range: {LOW_PRICE}-{HIGH_PRICE}"
-        )
+        today_intervals = get_today_intervals(intervals)
+        best_today = find_best_4h_window(today_intervals)
+        worst_today = find_worst_4h_window(today_intervals)
+
+        lines = [
+            "⚡ NL Energy Price Alert",
+            "",
+            f"Price: {price:.2f} EUR/MWh",
+            f"Target range: {LOW_PRICE}-{HIGH_PRICE}",
+        ]
+
+        if best_today:
+            window, avg = best_today
+            start = window[0]["start_local"]
+            end = window[-1]["end_local"]
+            lines.append("")
+            lines.append("🔋 Best charging window today")
+            lines.append(f"{format_interval(start, end)} — avg {avg:.2f} EUR/MWh")
+
+        if worst_today:
+            window, avg = worst_today
+            start = window[0]["start_local"]
+            end = window[-1]["end_local"]
+            lines.append("")
+            lines.append("🔴 Worst charging window today")
+            lines.append(f"{format_interval(start, end)} — avg {avg:.2f} EUR/MWh")
+
+        message = "\n".join(lines)
         send_telegram(message)
         print("Telegram alert sent.")
     else:
