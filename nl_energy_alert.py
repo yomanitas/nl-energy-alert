@@ -237,7 +237,7 @@ def find_negative_windows(intervals):
 # BEST WINDOWS
 # =========================
 
-def find_best_4h_window(intervals):
+def find_best_1h_window(intervals):
     if len(intervals) < 4:
         return None
 
@@ -280,7 +280,7 @@ def find_best_4h_window(intervals):
 # WORST WINDOWS
 # =========================
 
-def find_worst_4h_window(intervals):
+def find_worst_1h_window(intervals):
     if len(intervals) < 4:
         return None
 
