@@ -11,8 +11,8 @@ from zoneinfo import ZoneInfo
 # SETTINGS
 # =========================
 
-LOW_PRICE = 40
-HIGH_PRICE = 50
+LOW_PRICE = 0
+HIGH_PRICE = 25
 
 LOW_PRICE_THRESHOLD = 50
 HIGH_PRICE_THRESHOLD = 250
