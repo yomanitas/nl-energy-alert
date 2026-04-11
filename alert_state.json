@@ -1,5 +1,5 @@
 {
-  "in_range": false,
-  "last_price": 79.02,
+  "in_range": true,
+  "last_price": 8.0,
   "tomorrow_summary_sent_for": "2026-04-11"
 }
