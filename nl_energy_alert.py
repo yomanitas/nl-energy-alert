@@ -8,11 +8,18 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 # =========================
-# SETTINGS
+# LOWEST PRICE INTERVAL
 # =========================
 
-LOW_PRICE = -10
-HIGH_PRICE = 150
+def find_lowest_price_interval(intervals):
+    if not intervals:
+        return None
+
+    return min(intervals, key=lambda x: x["price"])
+
+# =========================
+# SETTINGS
+# =========================
 
 LOW_PRICE_THRESHOLD = 50
 HIGH_PRICE_THRESHOLD = 250
@@ -394,6 +401,56 @@ def save_state(state):
     STATE_FILE.write_text(json.dumps(state, indent=2))
 
 # =========================
+# LOWEST PRICE ALERT
+# =========================
+
+def maybe_send_lowest_price_alert(intervals, state):
+    today_intervals = get_today_intervals(intervals)
+
+    if not today_intervals:
+        print("No today intervals found.")
+        return
+
+    lowest = find_lowest_price_interval(today_intervals)
+
+    if lowest is None:
+        print("No lowest price interval found.")
+        return
+
+    today_key = datetime.now(NL_TZ).strftime("%Y-%m-%d")
+
+    if state.get("lowest_price_alert_sent_for") == today_key:
+        print("Lowest price alert already sent today.")
+        return
+
+    now = datetime.now(NL_TZ)
+
+    cheapest_start = lowest["start_local"]
+    cheapest_end = lowest["end_local"]
+
+    alert_start = cheapest_start - timedelta(minutes=15)
+    alert_end = cheapest_start
+
+    if alert_start <= now < alert_end:
+        message = (
+            "⚡️ *LOWEST PRICE IN 15 MINUTES* ⚡️\n\n"
+            f"🟢 Lowest price today\n"
+            f"{format_interval(cheapest_start, cheapest_end)}\n"
+            f"{lowest['price']:.2f} EUR/MWh"
+        )
+
+        send_telegram(message)
+        print("Lowest price alert sent.")
+
+        state["lowest_price_alert_sent_for"] = today_key
+    else:
+        print(
+            f"Lowest price today: "
+            f"{format_interval(cheapest_start, cheapest_end)} — "
+            f"{lowest['price']:.2f} EUR/MWh"
+        )
+
+# =========================
 # MARKET PUBLICATION TIME
 # =========================
 
@@ -496,13 +553,12 @@ def maybe_send_tomorrow_summary(intervals, state, current_price):
     print("Tomorrow summary sent.")
 
     state["tomorrow_summary_sent_for"] = tomorrow_key
-    
+
 # =========================
 # MAIN
 # =========================
 
 def main():
-
     xml_text = fetch_xml()
     intervals = parse_all_prices(xml_text)
 
@@ -516,54 +572,29 @@ def main():
 
     state = load_state()
 
-    was_in_range = state.get("in_range", False)
-    in_range = LOW_PRICE <= price <= HIGH_PRICE
+    # Send one alert 15 minutes before today's cheapest interval
+    maybe_send_lowest_price_alert(intervals, state)
 
-    if in_range and not was_in_range:
-        today_intervals = get_today_intervals(intervals)
-        best_today = find_best_charging_window(today_intervals)
-        worst_today = find_worst_charging_window(today_intervals)
-
-        lines = [
-            "⚡ NL Energy Price Alert",
-            "",
-            f"Price: {price:.2f} EUR/MWh",
-            f"Target range: {LOW_PRICE}-{HIGH_PRICE}",
-        ]
-
-        if best_today:
-            window, avg = best_today
-            start = window[0]["start_local"]
-            end = window[-1]["end_local"]
-            lines.append("")
-            lines.append("🔋 Best charging window today")
-            lines.append(f"{format_interval(start, end)} — avg {avg:.2f} EUR/MWh")
-
-        if worst_today:
-            window, avg = worst_today
-            start = window[0]["start_local"]
-            end = window[-1]["end_local"]
-            lines.append("")
-            lines.append("🔴 Worst charging window today")
-            lines.append(f"{format_interval(start, end)} — avg {avg:.2f} EUR/MWh")
-
-        message = "\n".join(lines)
-        send_telegram(message)
-        print("Telegram alert sent.")
-    else:
-        print("No current-price alert needed.")
-
+    # Send tomorrow summary once prices are available
     if tomorrow_prices_available():
         tomorrow_intervals = get_tomorrow_intervals(intervals)
         maybe_send_tomorrow_summary(tomorrow_intervals, state, price)
     else:
-        print("Tomorrow prices not expected yet (before 13:00).")
+        print(
+            f"Tomorrow prices not expected yet "
+            f"(before {TOMORROW_CHECK_HOUR}:00)."
+        )
 
     save_state({
-        "in_range": in_range,
         "last_price": price,
-        "tomorrow_summary_sent_for": state.get("tomorrow_summary_sent_for"),
+        "lowest_price_alert_sent_for": state.get(
+            "lowest_price_alert_sent_for"
+        ),
+        "tomorrow_summary_sent_for": state.get(
+            "tomorrow_summary_sent_for"
+        ),
     })
+
 
 if __name__ == "__main__":
     main()
