@@ -18,6 +18,12 @@ LOW_PRICE_THRESHOLD = 50
 HIGH_PRICE_THRESHOLD = 250
 NEGATIVE_PRICE_THRESHOLD = 0
 
+CHARGING_START_HOUR = 8
+CHARGING_END_HOUR = 22
+CHARGING_WINDOW_HOURS = 1
+
+TOMORROW_CHECK_HOUR = 13
+
 # TEST_MODE options:
 # None
 # "telegram"
@@ -110,6 +116,28 @@ def resolution_to_timedelta(resolution):
     if resolution == "PT15M":
         return timedelta(minutes=15)
     raise ValueError(f"Unsupported resolution: {resolution}")
+
+# =========================
+# CHARGING WINDOW HELPER
+# =========================
+
+def get_slots_per_window(intervals):
+    if len(intervals) < 2:
+        return None
+
+    slot_minutes = int(
+        (intervals[0]["end_utc"] - intervals[0]["start_utc"]).total_seconds() / 60
+    )
+
+    window_minutes = CHARGING_WINDOW_HOURS * 60
+
+    if window_minutes % slot_minutes != 0:
+        raise ValueError(
+            f"Charging window of {CHARGING_WINDOW_HOURS}h "
+            f"is not compatible with {slot_minutes}-minute price intervals."
+        )
+
+    return window_minutes // slot_minutes
 
 # =========================
 # PARSE ALL INTERVALS
@@ -238,33 +266,39 @@ def find_negative_windows(intervals):
 # =========================
 
 def find_best_1h_window(intervals):
-    if len(intervals) < 4:
+    slots = get_slots_per_window(intervals)
+
+    if slots is None or len(intervals) < slots:
         return None
 
     best_window = None
     best_avg = float("inf")
 
-    for i in range(len(intervals) - 3):
-        window = intervals[i:i + 4]
-        a, b, c, d = window
+    for i in range(len(intervals) - slots + 1):
+        window = intervals[i:i + slots]
 
-        if not (
-            a["end_utc"] == b["start_utc"] and
-            b["end_utc"] == c["start_utc"] and
-            c["end_utc"] == d["start_utc"]
+        consecutive = True
+
+        for j in range(len(window) - 1):
+            if window[j]["end_utc"] != window[j + 1]["start_utc"]:
+                consecutive = False
+                break
+
+        if not consecutive:
+            continue
+
+        start_nl = window[0]["start_local"]
+        end_nl = window[-1]["end_local"]
+
+        if start_nl.hour < CHARGING_START_HOUR:
+            continue
+
+        if end_nl.hour > CHARGING_END_HOUR or (
+            end_nl.hour == CHARGING_END_HOUR and end_nl.minute > 0
         ):
             continue
 
-        start_nl = a["start_utc"].astimezone(NL_TZ)
-        end_nl = d["end_utc"].astimezone(NL_TZ)
-
-        if start_nl.hour < 8:
-            continue
-
-        if end_nl.hour > 22 or (end_nl.hour == 22 and end_nl.minute > 0):
-            continue
-
-        avg = sum(x["price"] for x in window) / 4
+        avg = sum(x["price"] for x in window) / len(window)
 
         if avg < best_avg:
             best_avg = avg
@@ -280,33 +314,39 @@ def find_best_1h_window(intervals):
 # =========================
 
 def find_worst_1h_window(intervals):
-    if len(intervals) < 4:
+    slots = get_slots_per_window(intervals)
+
+    if slots is None or len(intervals) < slots:
         return None
 
     worst_window = None
     worst_avg = float("-inf")
 
-    for i in range(len(intervals) - 3):
-        window = intervals[i:i + 4]
-        a, b, c, d = window
+    for i in range(len(intervals) - slots + 1):
+        window = intervals[i:i + slots]
 
-        if not (
-            a["end_utc"] == b["start_utc"] and
-            b["end_utc"] == c["start_utc"] and
-            c["end_utc"] == d["start_utc"]
+        consecutive = True
+
+        for j in range(len(window) - 1):
+            if window[j]["end_utc"] != window[j + 1]["start_utc"]:
+                consecutive = False
+                break
+
+        if not consecutive:
+            continue
+
+        start_nl = window[0]["start_local"]
+        end_nl = window[-1]["end_local"]
+
+        if start_nl.hour < CHARGING_START_HOUR:
+            continue
+
+        if end_nl.hour > CHARGING_END_HOUR or (
+            end_nl.hour == CHARGING_END_HOUR and end_nl.minute > 0
         ):
             continue
 
-        start_nl = a["start_utc"].astimezone(NL_TZ)
-        end_nl = d["end_utc"].astimezone(NL_TZ)
-
-        if start_nl.hour < 8:
-            continue
-
-        if end_nl.hour > 22 or (end_nl.hour == 22 and end_nl.minute > 0):
-            continue
-
-        avg = sum(x["price"] for x in window) / 4
+        avg = sum(x["price"] for x in window) / len(window)
 
         if avg > worst_avg:
             worst_avg = avg
@@ -359,7 +399,7 @@ def save_state(state):
 
 def tomorrow_prices_available():
     now = datetime.now(NL_TZ)
-    return now.hour >= 13
+    return now.hour >= TOMORROW_CHECK_HOUR
 
 # =========================
 # TOMORROW SUMMARY
