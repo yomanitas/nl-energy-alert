@@ -463,9 +463,6 @@ def maybe_send_tomorrow_summary(intervals, state, current_price):
 
 def main():
 
-    send_telegram("🧪 NL Energy Alert Telegram test")
-    return
-
     xml_text = fetch_xml()
     intervals = parse_all_prices(xml_text)
 
