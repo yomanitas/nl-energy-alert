@@ -323,14 +323,24 @@ def find_worst_1h_window(intervals):
 
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {
-    "chat_id": CHAT_ID,
-    "text": message,
-    "parse_mode": "Markdown"
-}
-    response = requests.post(url, data=payload, timeout=(CONNECT_TIMEOUT, READ_TIMEOUT))
-    response.raise_for_status()
 
+    payload = {
+        "chat_id": CHAT_ID,
+        "text": message,
+        "parse_mode": "Markdown"
+    }
+
+    response = requests.post(
+        url,
+        data=payload,
+        timeout=(CONNECT_TIMEOUT, READ_TIMEOUT)
+    )
+
+    print("Telegram status:", response.status_code)
+    print("Telegram response:", response.text)
+
+    response.raise_for_status()
+    
 # =========================
 # STATE
 # =========================
