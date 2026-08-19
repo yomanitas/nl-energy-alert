@@ -429,7 +429,7 @@ def maybe_send_lowest_price_alert(intervals, state):
     cheapest_end = lowest["end_local"]
 
     alert_start = cheapest_start - timedelta(minutes=15)
-    alert_end = cheapest_start
+    alert_end = cheapest_start + timedelta(minutes=5)
 
     if alert_start <= now < alert_end:
         message = (
