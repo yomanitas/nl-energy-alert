@@ -265,7 +265,7 @@ def find_negative_windows(intervals):
 # BEST WINDOWS
 # =========================
 
-def find_best_1h_window(intervals):
+def find_best_charging_window(intervals):
     slots = get_slots_per_window(intervals)
 
     if slots is None or len(intervals) < slots:
@@ -313,7 +313,7 @@ def find_best_1h_window(intervals):
 # WORST WINDOWS
 # =========================
 
-def find_worst_1h_window(intervals):
+def find_worst_charging_window(intervals):
     slots = get_slots_per_window(intervals)
 
     if slots is None or len(intervals) < slots:
@@ -419,8 +419,8 @@ def maybe_send_tomorrow_summary(intervals, state, current_price):
     low_hours = find_low_price_hours(intervals)
     high_hours = find_high_price_hours(intervals)
     negative_windows = find_negative_windows(intervals)
-    best_window = find_best_1h_window(intervals)
-    worst_window = find_worst_1h_window(intervals)
+    best_window = find_best_charging_window(intervals)
+    worst_window = find_worst_charging_window(intervals)
 
     lines = [
         f"⚡️ *Current price now* ⚡️",
@@ -521,8 +521,8 @@ def main():
 
     if in_range and not was_in_range:
         today_intervals = get_today_intervals(intervals)
-        best_today = find_best_1h_window(today_intervals)
-        worst_today = find_worst_1h_window(today_intervals)
+        best_today = find_best_charging_window(today_intervals)
+        worst_today = find_worst_charging_window(today_intervals)
 
         lines = [
             "⚡ NL Energy Price Alert",
