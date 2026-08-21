@@ -485,11 +485,8 @@ def maybe_send_tomorrow_summary(intervals, state, current_price):
         "",
         f"📅 *NL Prices tomorrow ({tomorrow_key})*",
         "",
-        "",
     ]
 
-    lines.append("")
-    lines.append("")
     lines.append(f"🔻 Low price hours (< {LOW_PRICE_THRESHOLD})")
 
     if low_hours:
