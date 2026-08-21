@@ -487,7 +487,7 @@ def maybe_send_tomorrow_summary(intervals, state, current_price):
         "",
     ]
 
-    lines.append(f"🔻 Low price hours (< {LOW_PRICE_THRESHOLD})")
+    lines.append(f"✳️ Low price hours (< {LOW_PRICE_THRESHOLD})")
 
     if low_hours:
         for h in low_hours:
@@ -498,7 +498,7 @@ def maybe_send_tomorrow_summary(intervals, state, current_price):
         lines.append("None")
     lines.append("")
 
-    lines.append(f"🔺 High price hours (> {HIGH_PRICE_THRESHOLD})")
+    lines.append(f"✴️ High price hours (> {HIGH_PRICE_THRESHOLD})")
     if high_hours:
         for h in high_hours:
             lines.append(
@@ -508,7 +508,7 @@ def maybe_send_tomorrow_summary(intervals, state, current_price):
         lines.append("None")
     lines.append("")
 
-    lines.append(f"🟢 Negative price windows (<= {NEGATIVE_PRICE_THRESHOLD})")
+    lines.append(f"📉 Negative price windows (<= {NEGATIVE_PRICE_THRESHOLD})")
     if negative_windows:
         for window in negative_windows:
             start = window[0]["start_local"]
